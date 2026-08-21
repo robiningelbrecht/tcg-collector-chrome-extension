@@ -1,3 +1,4 @@
+import {icon} from "../Component/Icon";
 import {toValidCssClassName} from "../Infrastructure/Utils/Functions";
 import {AppState} from "../Infrastructure/AppState";
 
@@ -88,14 +89,14 @@ export class PrintBinderPlaceholdersFeature {
 
         const $cancelPrintSelectionModeButton = document.createElement('button');
         $cancelPrintSelectionModeButton.classList.add(...['cancel']);
-        $cancelPrintSelectionModeButton.innerHTML = `<span class="fa-solid fa-ban"></span><div>Exit print mode</div>`;
+        $cancelPrintSelectionModeButton.innerHTML = `${icon('ban')}<div>Exit print mode</div>`;
         $cancelPrintSelectionModeButton.addEventListener('click', () => {
             $body.classList.remove('in-print-selection-mode');
         });
 
         const $printButton = document.createElement('button');
         $printButton.classList.add(...['print']);
-        $printButton.innerHTML = `<span class="fa-solid fa-print"></span><div>Print <span class="count">0</span> binder placeholder(s)</div>`;
+        $printButton.innerHTML = `${icon('print')}<div>Print <span class="count">0</span> binder placeholder(s)</div>`;
         $printButton.addEventListener('click', () => {
             // Hide all unchecked cards.
             document.querySelectorAll(`div.placeholder[data-card-id]`).forEach($placeholder => {
@@ -118,7 +119,7 @@ export class PrintBinderPlaceholdersFeature {
         const $togglePrintSelectionModeButton$ = document.createElement('button');
         $togglePrintSelectionModeButton$.classList.add(...['button', 'button-plain-alt', 'toggle-print-selection']);
         $togglePrintSelectionModeButton$.setAttribute('title', 'Print binder placeholders');
-        $togglePrintSelectionModeButton$.innerHTML = `<span class="fa-solid fa-print"></span><div>Print binder placeholders</div>`;
+        $togglePrintSelectionModeButton$.innerHTML = `${icon('print')}<div>Print binder placeholders</div>`;
         $togglePrintSelectionModeButton$.addEventListener('click', () => {
             $body.classList.add('in-print-selection-mode');
         });

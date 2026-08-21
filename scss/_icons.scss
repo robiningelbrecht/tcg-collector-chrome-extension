@@ -1,0 +1,13 @@
+// Icons are inline SVG, see src/Component/Icon.js for why.
+.sauce-icon {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+
+  svg {
+    display: block;
+    fill: currentColor;
+    height: 1em;
+    width: 1em;
+  }
+}

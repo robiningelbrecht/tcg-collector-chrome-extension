@@ -99,7 +99,7 @@ body.print-binder-expansion-logos {
         align-items: center;
         position: relative;
 
-        span.fa-solid {
+        span.sauce-icon {
           position: absolute;
           left: 15px;
         }
@@ -131,6 +131,12 @@ body.print-binder-expansion-logos {
 
     .set-logo-grid-item {
       align-items: center;
+
+      // The site pins the logo to the left of a container sized for the widest logo on the page,
+      // so it lines up with the date/price column. That column is hidden in selection mode.
+      .set-logo-grid-item-logo {
+        object-position: center;
+      }
 
       a {
         color: #a69e92;

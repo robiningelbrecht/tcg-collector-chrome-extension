@@ -1,6 +1,12 @@
+import {icon} from "../Component/Icon";
+
 export class PrintBinderExpansionLogosFeature {
     constructor() {
-
+        this.isPrintNavigationSetUp = false;
+        this.isSyncScheduled = false;
+        this.observer = null;
+        this.renderedSignature = null;
+        this.$printWrapper = null;
     }
 
     getId = () => {
@@ -15,20 +21,39 @@ export class PrintBinderExpansionLogosFeature {
         return appState.getRouteName() === 'sets_page';
     }
 
-    apply = async () => {
-        const $expansions = document.querySelectorAll('.set-logo-grid-item');
+    getPrintWrapper = () => {
+        if (!this.$printWrapper) {
+            this.$printWrapper = document.createElement('div');
+            this.$printWrapper.setAttribute('id', 'print');
+            document.body.appendChild(this.$printWrapper);
+        }
 
-        const $printWrapper = document.createElement('div');
-        $printWrapper.setAttribute('id', 'print');
+        return this.$printWrapper;
+    }
+
+    updateSelectionCount = () => {
+        const $count = document.querySelector('.print-navigation button.print span.count');
+        if ($count) {
+            $count.innerHTML = document.querySelectorAll('input[type="checkbox"][data-expansion-id]:checked').length;
+        }
+    }
+
+    syncSelectableSets = () => {
+        const $expansions = Array.from(document.querySelectorAll('.set-logo-grid-item'))
+            .filter($expansion => $expansion.querySelector('img.set-logo-grid-item-logo'));
+
+        const signature = $expansions.map($expansion => $expansion.getAttribute('data-set-id')).join(',');
+        const hasExpansionsWithoutCheckbox = $expansions.some($expansion => !$expansion.querySelector(':scope > label'));
+        if (signature === this.renderedSignature && !hasExpansionsWithoutCheckbox) {
+            return;
+        }
+        this.renderedSignature = signature;
+
+        const $printWrapper = this.getPrintWrapper();
+        $printWrapper.replaceChildren();
 
         $expansions.forEach($expansion => {
-            const $logo = $expansion.querySelector('img.set-logo-grid-item-logo');
-            // Some expansions have no logo, those can't be printed.
-            if (!$logo) {
-                return;
-            }
-
-            const logoUri = $logo.getAttribute('src');
+            const logoUri = $expansion.querySelector('img.set-logo-grid-item-logo').getAttribute('src');
             const expansionId = $expansion.getAttribute('data-set-id');
 
             const $placeholder = document.createElement('div');
@@ -44,12 +69,17 @@ export class PrintBinderExpansionLogosFeature {
             $printWrapper.appendChild($placeholder.cloneNode(true));
             $printWrapper.appendChild($placeholder.cloneNode(true));
 
+            // Grid items that survived the re-render already have their checkbox.
+            if ($expansion.querySelector(':scope > label')) {
+                return;
+            }
+
             // Add a checkbox to select the expansion in print-selection-mode.
             const $checkbox = document.createElement('input');
             $checkbox.setAttribute('type', 'checkbox');
             $checkbox.setAttribute('data-expansion-id', expansionId);
             $checkbox.addEventListener('click', () => {
-                document.querySelector('button span.count').innerHTML = document.querySelectorAll('input[type="checkbox"][data-expansion-id]:checked').length;
+                this.updateSelectionCount();
             })
 
             const $checkboxLabel = document.createElement('label');
@@ -57,8 +87,41 @@ export class PrintBinderExpansionLogosFeature {
             $expansion.appendChild($checkboxLabel);
         });
 
+        this.updateSelectionCount();
+    }
+
+    observeSearchResults = () => {
+        const $pageContent = document.querySelector('#page-content');
+        if (!$pageContent) {
+            return;
+        }
+
+        const observerOptions = {childList: true, subtree: true};
+
+        this.observer = new MutationObserver(() => {
+            if (this.isSyncScheduled) {
+                return;
+            }
+            this.isSyncScheduled = true;
+
+            requestAnimationFrame(() => {
+                this.isSyncScheduled = false;
+                this.observer.disconnect();
+                this.syncSelectableSets();
+                this.observer.observe($pageContent, observerOptions);
+            });
+        });
+
+        this.observer.observe($pageContent, observerOptions);
+    }
+
+    setUpPrintNavigation = () => {
+        if (this.isPrintNavigationSetUp) {
+            return;
+        }
+        this.isPrintNavigationSetUp = true;
+
         const $body = document.body;
-        $body.appendChild($printWrapper);
 
         const $printNavigation = document.createElement('div');
         $printNavigation.classList.add(...['print-navigation']);
@@ -69,14 +132,14 @@ export class PrintBinderExpansionLogosFeature {
 
         const $cancelPrintSelectionModeButton = document.createElement('button');
         $cancelPrintSelectionModeButton.classList.add(...['cancel']);
-        $cancelPrintSelectionModeButton.innerHTML = `<span class="fa-solid fa-ban"></span><div>Exit print mode</div>`;
+        $cancelPrintSelectionModeButton.innerHTML = `${icon('ban')}<div>Exit print mode</div>`;
         $cancelPrintSelectionModeButton.addEventListener('click', () => {
             $body.classList.remove('in-print-selection-mode');
         });
 
         const $printButton = document.createElement('button');
         $printButton.classList.add(...['print']);
-        $printButton.innerHTML = `<span class="fa-solid fa-print"></span><div>Print <span class="count">0</span> expansion logo(s)</div>`;
+        $printButton.innerHTML = `${icon('print')}<div>Print <span class="count">0</span> set logo(s)</div>`;
         $printButton.addEventListener('click', () => {
             const size = parseInt(document.querySelector('.size input').value);
             const shape = document.querySelector('.shape select').value;
@@ -108,7 +171,7 @@ export class PrintBinderExpansionLogosFeature {
 
         const $shapeSelect = document.createElement('div');
         $shapeSelect.classList.add(...['shape']);
-        $shapeSelect.innerHTML = `<span class="fa-swatchbook fa-solid"></span>
+        $shapeSelect.innerHTML = `${icon('swatchbook')}
             <select>
             <option value="50%" selected>Circle</option>
             <option value="0">Rectangle</option>
@@ -116,7 +179,7 @@ export class PrintBinderExpansionLogosFeature {
 
         const $sizeInput = document.createElement('div');
         $sizeInput.classList.add(...['size']);
-        $sizeInput.innerHTML = `<span class="fa-up-right-and-down-left-from-center fa-solid"></span><input type="number" min="1" max="99" value="39"/><span class="unit">mm</span>`;
+        $sizeInput.innerHTML = `${icon('resize')}<input type="number" min="1" max="99" value="39"/><span class="unit">mm</span>`;
 
         $inner.appendChild($shapeSelect);
         $inner.appendChild($sizeInput);
@@ -126,8 +189,8 @@ export class PrintBinderExpansionLogosFeature {
 
         const $togglePrintSelectionModeButton = document.createElement('button');
         $togglePrintSelectionModeButton.classList.add(...['button', 'button-plain-alt', 'toggle-print-selection']);
-        $togglePrintSelectionModeButton.setAttribute('title', 'Print expansion logos');
-        $togglePrintSelectionModeButton.innerHTML = `<span class="fa-solid fa-print"></span><div>Print expansion logos</div>`;
+        $togglePrintSelectionModeButton.setAttribute('title', 'Print set logos');
+        $togglePrintSelectionModeButton.innerHTML = `${icon('print')}<div>Print set logos</div>`;
         $togglePrintSelectionModeButton.addEventListener('click', () => {
             $body.classList.add('in-print-selection-mode');
         });
@@ -143,7 +206,11 @@ export class PrintBinderExpansionLogosFeature {
                 $body.classList.remove('in-print-selection-mode');
             }
         });
+    }
 
-
+    apply = async () => {
+        this.setUpPrintNavigation();
+        this.syncSelectableSets();
+        this.observeSearchResults();
     }
 }
